@@ -1,0 +1,80 @@
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName('Spark Playground').getOrCreate()
+
+emp_data = [
+["001","101","John Doe","30","Male","50000","2015-01-01"],
+["002","101","Jane Smith","25","Female","45000","2016-02-15"],
+["003","102","Bob Brown","35","Male","55000","2014-05-01"],
+["004","102","Alice Lee","28","Female","48000","2017-09-30"],
+["005","103","Jack Chan","40","Male","60000","2013-04-01"],
+["006","103","Jill Wong","32","Female","52000","2018-07-01"],
+["007","101","James Johnson","42","Male","70000","2012-03-15"],
+["008","102","Kate Kim","29","Female","51000","2019-10-01"],
+["009","103","Tom Tan","33","Male","58000","2016-06-01"],
+["010","104","Lisa Lee","27","Female","47000","2018-08-01"],
+["011","104","David Park","38","Male","65000","2015-11-01"],
+["012","105","Susan Chen","31","Female","54000","2017-02-15"],
+["013","106","Brian Kim","45","Male","75000","2011-07-01"],
+["014","107","Emily Lee","26","Female","46000","2019-01-01"],
+["015","106","Michael Lee","37","Male","63000","2014-09-30"],
+["016","107","Kelly Zhang","30","Female","49000","2018-04-01"],
+["017","105","George Wang","34","Male","57000","2016-03-15"],
+["018","104","Nancy Liu","29","Female","50000","2017-06-01"],
+["019","103","Steven Chen","36","Male","62000","2015-08-01"],
+["020","102","Grace Kim","32","Female","53000","2018-11-01"]
+]
+
+
+from pyspark.sql.types import StructType, StructField, StringType
+
+emp_schema = StructType([
+    StructField("emp_id", StringType(), True),
+    StructField("dept_id", StringType(), True),
+    StructField("emp_name", StringType(), True),
+    StructField("age", StringType(), True),
+    StructField("gender", StringType(), True),
+    StructField("salary", StringType(), True),
+    StructField("joining_date", StringType(), True)
+])
+
+
+emp  = spark.createDataFrame(data=emp_data,schema=emp_schema)
+
+#reading csv file 
+#df = spark.read.format("csv").option("header",True).option("inferSchema",True).load("file/path")
+#spark will run one job just to identify the metadata once in the start
+#df.printSchema()
+
+
+#df_schema = "employee_id int, department_id int, name string, age int, gender string, salary double, hire_date date"
+#df_schema = spark.read.format("csv").option("header",True).schema(df_schema).load("pathtocsv")
+display(emp)
+
+#handling bad records usiong permissive mode(default mode)
+
+df_p = spark.read.format("csv").schema(df_schema).option("header",True).load("path") #if any bad records are there which dont comply with the schema it will put the data as null.
+
+# we can add _corrupt_record in schema to find out data which doesnt match with schmma (inbuilt functionality)
+#df_schema = "employee_id int, department_id int, name string, age int, gender string, salary double, hire_date date , _corrupt_record string"
+
+df_p.where("_corrupt_record is not null").show()
+
+
+#using badrecord to remove using dropmalformed /dropping badrecords in the dataframe
+df_m = spark.read.format("csv").option("header",True).option("mode","DROPMALFORMED".schema("df_schema").load("filepath"))
+
+#using failfast to obstruct dataframe processing if bad records are there in the dataframe
+df_m = spark.read.format("csv").option("header",True).option("mode","FAILFAST").schema(df_schema).load("filepath")
+
+
+
+instead of specifying each option we can write a dictionary to list down all the options for a dataframe 
+
+df_options= {
+  "header":"true",
+  "inferschema":"true",
+  "mode":"PERMISSIVE"
+}
+
+DF = spark.read.format("csv").options(**df_options).load("filepath")
