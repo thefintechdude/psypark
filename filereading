@@ -1,0 +1,61 @@
+from pyspark.sql import SparkSession
+spark = (SparkSession.builder.appName("reading different file formats").master("local[*]").getOrCreate())
+
+
+df_parquet = spark.read.format("parquet").load("/samples/titanic.parquet")
+df_parquet.printSchema()
+df_parquet.show()
+
+df_orc = spark.read.format("orc").load("/samples/organizations.orc")
+df_orc.show()
+
+#to read all files from folder 
+df_parquet = spark.read.format("parquet").load("/samples/*.parquet")
+df_orc = spark.read.format("orc").load("/samples/*.orc")
+#we can use options here also 
+
+# Benefits of Columnar Storage
+
+# Lets create a simple Python decorator - {get_time} to get the execution timings
+# If you dont know about Python decorators - check out :
+# https://www.geeksforgeeks.org/decorators-in-python/
+
+import time
+
+def get_time(func):
+    def inner_get_time() -> str:
+        start_time = time.time()
+        func()
+        end_time = time.time()
+        return (f"Execution time: {(end_time - start_time)*1000} ms")
+
+    print(inner_get_time())
+
+#execution time using complete read
+@get_time
+def x():
+    df = spark.read.format("parquet").load("data/input/sales_data.parquet")
+    df.count()
+
+#execution time using select
+@get_time
+def x():
+    df = spark.read.format("parquet").load("data/input/sales_data.parquet")
+    df.select("trx_id").count()
+
+
+
+
+  #recursive data reading in spark for each folder 
+
+#how do we reach each parquest file here ? using recursive file lookup
+sales folder
+||
+sales 1 -> 1.parquet
+||
+sales 1 -> sales 2 -> 2.parquet
+
+df_1  = spark.read.format("parquet").option("recursiveFileLookup",True).load("folderpath") #will check in each folder for parquet file 
+
+  
+  
